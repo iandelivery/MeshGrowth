@@ -1,0 +1,6 @@
+C:\Users\CHENYIN\source\repos\MeshGrowth\obj\Debug\MeshGrowth.csproj.AssemblyReference.cache
+C:\Users\CHENYIN\source\repos\MeshGrowth\obj\Debug\MeshGrowth.csproj.CoreCompileInputs.cache
+C:\Users\CHENYIN\source\repos\MeshGrowth\bin\MeshGrowth.dll
+C:\Users\CHENYIN\source\repos\MeshGrowth\bin\MeshGrowth.pdb
+C:\Users\CHENYIN\source\repos\MeshGrowth\obj\Debug\MeshGrowth.dll
+C:\Users\CHENYIN\source\repos\MeshGrowth\obj\Debug\MeshGrowth.pdb
