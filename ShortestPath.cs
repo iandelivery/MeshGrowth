@@ -42,7 +42,7 @@ namespace MeshGrowth
     /// </summary>
     public class ShortestPath
     {
-        private bool PointInPolygonSet(double testX, double testY, List<Polyline> allPolys)
+        public bool PointInPolygonSet(double testX, double testY, List<Polyline> allPolys)
         {
             bool oddNodes = false;
 
@@ -132,11 +132,11 @@ namespace MeshGrowth
             eX -= sX; eY -= sY;
             return Math.Sqrt(eX * eX + eY * eY);
         }
-        private unsafe void SwapPoints(PathPoint a, PathPoint b)
+        private void SwapPoints(ref List<PathPoint> points, int a ,int b)
         {
-            PathPoint swap = new PathPoint(a);
-            a = b;
-            b = swap;
+            PathPoint swap = points[a];
+            points[a] = points[b];
+            points[b] = swap;
         }
         //  Finds the shortest path from sX,sY to eX,eY that stays within the polygon set.
         //
@@ -149,12 +149,12 @@ namespace MeshGrowth
         //  of the intermediate nodes of the path, in order.  (The startpoint and endpoint
         //  are assumed, and will not be included in the solution.)
 
-        private unsafe bool RunShortestPath(double sX, double sY, double eX, double eY, List<Polyline> allPolys,
-        double* solutionX, double* solutionY, int* solutionNodes)
+        public unsafe bool RunShortestPath(double sX, double sY, double eX, double eY, List<Polyline> allPolys,
+        out List<Point3d> solutionPoints)
         {
 
-            double INF = 9999999;    //  (larger than total solution dist could ever be)
-
+            double INF = double.PositiveInfinity-1;    //  (larger than total solution dist could ever be)
+            solutionPoints = new List<Point3d>();
             //point pointList[1000] ;   //  (enough for all polycorners plus two)
             //int pointCount;
             List<PathPoint> pathPointList = new List<PathPoint>();
@@ -166,20 +166,21 @@ namespace MeshGrowth
             if (!PointInPolygonSet(sX, sY, allPolys)
             || !PointInPolygonSet(eX, eY, allPolys))
             {
+                solutionPoints = null;
                 return false;
             }
 
             //  If there is a straight-line solution, return with it immediately.
             if (LineInPolygonSet(sX, sY, eX, eY, allPolys))
             {
-                //solutionNodes = null;
+                solutionPoints.Add(new Point3d(sX, sY, 0));
+                solutionPoints.Add(new Point3d(eX, eY, 0));
                 return true;
             }
 
             //  Build a point list that refers to the corners of the
             //  polygons, as well as to the startpoint and endpoint.
             pathPointList.Add(new PathPoint(sX, sY, 0.0, -1));
-            pathPointList.Add(new PathPoint());
             pointCount = 1;
             for (polyI = 0; polyI < allPolys.Count; polyI++)
             {
@@ -187,15 +188,11 @@ namespace MeshGrowth
                 for (i = 0; i < pl.SegmentCount; i++)
                 {
                     var pathPoint = new PathPoint(pl.X[i], pl.Y[i], 0.0, -1);
-                    pathPointList[pointCount] = pathPoint;
-                    pathPointList.Add(new PathPoint());
+                    pathPointList.Add(pathPoint);
                     pointCount++;
                 }
             }
-            var endPoint = pathPointList[pointCount];
-            endPoint.X = eX;
-            endPoint.Y = eY;
-            pathPointList.Add(new PathPoint());
+            pathPointList.Add(new PathPoint(eX, eY, 0.0, -1));
             pointCount++;
 
             //  Initialize the shortest-path tree to include just the startpoint.
@@ -229,29 +226,25 @@ namespace MeshGrowth
                     }
                 }
                 if (bestDist == INF)
+                {
+                    solutionPoints = null;
                     return false;   //  (no solution)
+                }
                 double x = pathPointList[bestJ].X;
                 double y = pathPointList[bestJ].Y;
                 pathPointList[bestJ] = new PathPoint(x, y, bestDist, bestI);
-                SwapPoints(pathPointList[bestJ], pathPointList[treeCount]);
+                SwapPoints(ref pathPointList,bestJ,treeCount);
                 treeCount++;
             }
 
             //  Load the solution arrays.
-            *solutionNodes = -1; i = treeCount - 1;
+            solutionPoints.Add(new Point3d(eX, eY, 0));
+            i = treeCount - 1;
             while (i > 0)
             {
                 i = pathPointList[i].PreviousId; 
-                (*solutionNodes)++;
-            }
-            j = (*solutionNodes) - 1;
-            i = treeCount - 1;
-            while (j >= 0)
-            {
-                i = pathPointList[i].PreviousId;
-                solutionX[j] = pathPointList[i].X;
-                solutionY[j] = pathPointList[i].Y;
-                j--;
+                solutionPoints.Add(new Point3d(pathPointList[i].X, pathPointList[i].Y,0));
+                //i = pathPointList[i].PreviousId;
             }
 
             //  Success.
